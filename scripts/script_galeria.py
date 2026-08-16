@@ -3,10 +3,10 @@ from PIL import Image
 import urllib.parse
 
 # 1. Configura la URL base de tu GitHub
-BASE_URL = "https://raw.githubusercontent.com/TheCONDIMENTSoficialxd/torizo-webpage-assets/main/galeria/posters/"
+BASE_URL = "https://raw.githubusercontent.com/TheCONDIMENTSoficialxd/torizo-webpage-assets/main/galeria/"
 
 # 2. Configura el tag que llevarán estas imágenes
-TAG = "tag4"
+TAG = "tag"
 
 # Recorrer todos los archivos en la carpeta actual
 for i, filename in enumerate(os.listdir("."), start=1):
