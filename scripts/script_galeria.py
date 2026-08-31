@@ -66,8 +66,8 @@ if readline:
 # INICIO DEL SCRIPT PRINCIPAL
 # ==========================================
 
-# 1. Configura la URL base de tu GitHub
-BASE_URL = "https://raw.githubusercontent.com/TheCONDIMENTSoficialxd/torizo-webpage-assets/main/galeria/"
+# 1. Configura la URL base general de tu GitHub (sin la carpeta final del tag)
+BASE_URL_GENERAL = "https://raw.githubusercontent.com/TheCONDIMENTSoficialxd/torizo-webpage-assets/main/galeria/"
 
 print("--- Generador de HTML para Galería ---")
 print("Tip: Usa la tecla [TAB] para autocompletar rutas de carpetas.\n")
@@ -103,8 +103,13 @@ if tag_input not in tags:
 
 # El HTML utilizará tag1, tag2, tag3 o tag4
 TAG = f"tag{tag_input}"
+NOMBRE_TAG = tags[tag_input]
 
-print(f"\nTag seleccionado: {TAG} ({tags[tag_input]})\n")
+# Construir la URL base final incluyendo la subcarpeta del tag seleccionado
+BASE_URL = f"{BASE_URL_GENERAL}{NOMBRE_TAG}/"
+
+print(f"\nTag seleccionado: {TAG} ({NOMBRE_TAG})")
+print(f"URL Base generada: {BASE_URL}\n")
 print("-" * 40 + "\n")
 
 # 5. Recorrer todos los archivos en la carpeta seleccionada
@@ -121,7 +126,6 @@ for i, filename in enumerate(os.listdir(folder), start=1):
             with Image.open(filepath) as img:
                 width, height = img.size
         except Exception as e:
-            print(f"")
             continue
 
         # Formatear variables para el HTML
