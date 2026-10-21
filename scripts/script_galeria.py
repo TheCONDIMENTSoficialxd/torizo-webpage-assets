@@ -14,149 +14,113 @@ except ImportError:
         readline = None
 
 def completar_rutas(text, state):
-    """
-    Función de apoyo para autocompletar rutas usando la tecla TAB (estilo Fish/Bash).
-    """
-    # Expandir virgulilla (~) si se usa en la ruta
     text = os.path.expanduser(text)
-    
     if os.path.isdir(text):
-        # Si es un directorio válido, listar su contenido
         dir_path = text
         prefix = ""
     else:
-        # Si está escribiendo parcialmente una ruta, separar directorio y prefijo
         dir_path, prefix = os.path.split(text)
         if not dir_path:
             dir_path = "."
-
     try:
-        # Obtener todos los elementos que coincidan
         items = os.listdir(dir_path)
     except OSError:
         return None
-
-    # Filtrar solo los que comiencen con el prefijo actual
     matches = [
         os.path.join(dir_path, item) if dir_path != "." else item
         for item in items if item.startswith(prefix)
     ]
-    
-    # Agregar barra diagonal si es un directorio para seguir explorando
     results = []
     for m in matches:
         if os.path.isdir(os.path.expanduser(m)):
             results.append(m + os.sep)
         else:
             results.append(m)
-
     try:
         return results[state]
     except IndexError:
         return None
 
-# Configurar el autocompletado en la terminal
 if readline:
     readline.set_completer_delims(' \t\n;')
     readline.parse_and_bind("tab: complete")
-    # Configurar la función de completado
     readline.set_completer(completar_rutas)
 
 # ==========================================
 # INICIO DEL SCRIPT PRINCIPAL
 # ==========================================
 
-# 1. Configura la URL base general de tu GitHub (sin la carpeta final del tag)
 BASE_URL_GENERAL = "https://raw.githubusercontent.com/TheCONDIMENTSoficialxd/torizo-webpage-assets/main/galeria/"
 
-print("--- Generador de HTML para Galería ---")
+print("--- Generador Automático de HTML para Galería ---")
 print("Tip: Usa la tecla [TAB] para autocompletar rutas de carpetas.\n")
 
-# 2. Pedir al usuario la ubicación con soporte de autocompletado
-folder = input("Introduce la ruta de la carpeta donde están las imágenes: ").strip()
-folder = os.path.expanduser(folder) # Limpiar formato de ruta si usa ~
+# 1. Pedir al usuario la ubicación de la carpeta principal "galeria"
+folder = input("Introduce la ruta de la carpeta principal que contiene los subdirectorios (galeria): ").strip()
+folder = os.path.expanduser(folder)
+html_folder = input("Introduce la ruta de la carpeta donde se guardará el HTML: ").strip()
+html_folder = os.path.expanduser(html_folder)
 
-# Comprobar que la carpeta existe
 if not os.path.isdir(folder):
     print(f"\nError: la carpeta '{folder}' no existe o no es válida.")
     exit()
 
-# 3. Mostrar los tags disponibles
-tags = {
-    "1": "conceptual",
-    "2": "paisajes",
-    "3": "autorretratos",
-    "4": "posters"
-}
 
-print("\nTags disponibles:")
-for numero, nombre in tags.items():
-    print(f"  {numero} = {nombre}")
-
-# 4. Pedir al usuario el número del tag
-tag_input = input("\nSelecciona el número del tag: ").strip()
-
-# Comprobar que el número sea válido
-if tag_input not in tags:
-    print("Error: debes seleccionar 1, 2, 3 o 4.")
+if not os.path.isdir(html_folder):
+    print(f"\nError: la carpeta '{html_folder}' no existe o no es válida.")
     exit()
 
-# El HTML utilizará tag1, tag2, tag3 o tag4
-TAG = f"tag{tag_input}"
-NOMBRE_TAG = tags[tag_input]
+# 2. Configurar la relación entre los nombres de carpetas y los IDs/Tags
+directorios_tags = {
+    "conceptual": "tag1",
+    "paisajes": "tag2",
+    "autorretratos": "tag3",
+    "posters": "tag4"
+}
 
-# Construir la URL base final incluyendo la subcarpeta del tag seleccionado
-BASE_URL = f"{BASE_URL_GENERAL}{NOMBRE_TAG}/"
+# 3. Ruta del archivo de salida
+html_output_path = os.path.join(html_folder, "index.html")
 
-print(f"\nTag seleccionado: {TAG} ({NOMBRE_TAG})")
-print(f"URL Base generada: {BASE_URL}\n")
-print("-" * 40 + "\n")
+print(f"\nEscaneando subdirectorios y generando '{html_output_path}'...")
 
-# 5. Recorrer todos los archivos en la carpeta seleccionada
-for i, filename in enumerate(os.listdir(folder), start=1):
-
-    # Filtrar solo archivos de imagen
-    if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
-
-        # Ruta completa de la imagen
-        filepath = os.path.join(folder, filename)
-
-        # Abrir la imagen y obtener su tamaño original
-        try:
-            with Image.open(filepath) as img:
-                width, height = img.size
-        except Exception as e:
+# 4. Crear o sobreescribir el archivo index.html
+with open(html_output_path, "w", encoding="utf-8") as html_file:
+    # Recorrer cada directorio predefinido
+    for nombre_dir, tag_id in directorios_tags.items():
+        dir_path = os.path.join(folder, nombre_dir)
+        
+        # Verificar si la carpeta existe dentro de la ruta especificada
+        if not os.path.isdir(dir_path):
+            print(f"  [!] Advertencia: No se encontró la carpeta '{nombre_dir}'. Se omitirá.")
             continue
+            
+        print(f"  -> Procesando directorio: {nombre_dir} (se asignará {tag_id})")
+        base_url_especifica = f"{BASE_URL_GENERAL}{nombre_dir}/"
+        
+        # Recorrer las imágenes dentro del subdirectorio
+        for filename in os.listdir(dir_path):
+            if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
+                filepath = os.path.join(dir_path, filename)
+                
+                # Obtener el tamaño de la imagen
+                try:
+                    with Image.open(filepath) as img:
+                        width, height = img.size
+                except Exception as e:
+                    print(f"      [x] Error al leer {filename}: {e}")
+                    continue
+                
+                # Formatear variables para el HTML
+                url = base_url_especifica + urllib.parse.quote(filename)
+                title = os.path.splitext(filename)[0]
+                html_id = title.replace(" ", "-").lower()
+                
+                # Bloque HTML para el elemento actual
+                html = f'''<li class="grid-item entry {tag_id}" id="{html_id}">\n  <figure>\n    <a\n      href="{url}"\n      data-img="{url}"\n      data-thumb="{url}"\n      data-alt="{title}"\n      data-caption="{title}"\n      data-width="{width}"\n      data-height="{height}"\n    >\n      <img\n        loading="lazy"\n        class="responsive"\n        width="{width}"\n        height="{height}"\n        src="{url}"\n        alt="{title}"\n      />\n    </a>\n    <figcaption class="caption">{title}</figcaption>\n  </figure>\n</li>\n'''
+                
+                # Escribir en el archivo
+                html_file.write(html)
+                html_file.write("\n")
 
-        # Formatear variables para el HTML
-        url = BASE_URL + urllib.parse.quote(filename)
-        title = os.path.splitext(filename)[0]
-        html_id = title.replace(" ", "-").lower()
+print(f"\n¡Éxito! Todas las imágenes procesadas fueron guardadas en un solo archivo: {html_output_path}")
 
-        # Generar el HTML con las dimensiones exactas
-        html = f'''<li class="grid-item entry {TAG}" id="{html_id}">
-  <figure>
-    <a
-      href="{url}"
-      data-img="{url}"
-      data-thumb="{url}"
-      data-alt="{title}"
-      data-caption="{title}"
-      data-width="{width}"
-      data-height="{height}"
-    >
-      <img
-        loading="lazy"
-        class="responsive"
-        width="{width}"
-        height="{height}"
-        src="{url}"
-        alt="{title}"
-      />
-    </a>
-    <figcaption class="caption">{title}</figcaption>
-  </figure>
-</li>'''
-
-        print(html)
-        print("\n")
